@@ -17,6 +17,7 @@ int main()
 	return 0;
 }
 
+
 void reverse(char s[])
 {
 	int len;
@@ -26,10 +27,10 @@ void reverse(char s[])
 	len -= 1;
 	for(int i = 0; i < len; i++, len--)
 	{
-		c = s[i];
+		c = s[i];	
 		s[i] = s[len];
 		s[len] = c;
-	}	
+	}
 }
 
 void itoa(int n, char s[])
