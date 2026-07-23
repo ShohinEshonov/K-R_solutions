@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 
-#define MAXVAL 2
+#define MAXVAL 500
 
 
 int sp = 0;
