@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h> 
 #include <stdlib.h>
-
+#include <ctype.h>
 #define MAXLINES 5000
 #define MAXLEN   300
 
@@ -16,10 +16,12 @@ void qSort(void *lineptr[], int left, int right, int (*cmp)(void *, void *));
 int numcmp(const char *, const char *);
 int rev_strcmp(const char *, const char *);
 void swap(void *v[], int i, int j);
-
+char *to_lower_string(const char *str);
+int strcmp_dispatch(const char *, const char *);
 //flags
 int numeric = 0;
 int reverse = 0;
+int fold    = 0;
 
 int main(int argc, char *argv[])
 {
@@ -48,6 +50,9 @@ int main(int argc, char *argv[])
 						break;
 					case 'r':
 						reverse = 1;
+						break;
+					case 'f':
+						fold    = 1;
 						break;
 					default: 
 						printf("Error: Unknown argument.");
@@ -79,7 +84,7 @@ int main(int argc, char *argv[])
 
 	if(nlines > 0)
 	{
-		qSort((void **) lineptr, 0, nlines-1, (int (*)(void *, void *))(numeric ?  numcmp : reverse ? rev_strcmp : strcmp));
+		qSort((void **) lineptr, 0, nlines-1, (int (*)(void *, void *))(numeric ?  numcmp : strcmp_dispatch));
 		writelines(lineptr, nlines);
 		return 0;
 	}	
@@ -119,10 +124,24 @@ void swap(void *v[], int i, int j)
 
 }
 
-int rev_strcmp(const char *s1, const char *s2)
+int strcmp_dispatch(const char *s1, const char *s2)
 {
-	return strcmp(s2, s1);
+	if(fold == 1)
+	{
+		char *s1_lower = to_lower_string(s1);
+	      	char *s2_lower = to_lower_string(s2);
+		if(reverse == 1)
+			return strcmp(s2_lower, s1_lower);
+		return strcmp(s1_lower, s2_lower);	
+	}
+
+	if(reverse == 1)
+		return strcmp(s2, s1);
+
+	return strcmp(s1, s2);
 }
+
+
 
 int numcmp(const char *s1, const char *s2)
 {
@@ -197,7 +216,18 @@ void writelines(char *lineptr[], int nlines)
 void print_help()
 {
 	printf("Usage: ./sort flags\n");
-	printf("Flags:\t-n (for sort in numeric order), -r (for reverse sort))\n");
+	printf("Flags:\t-n (for sort in numeric order), -r (for reverse sort), -f (to ignore case of letters when sorting).\n");
 	printf("You can combine flags like -nr\n");
 
+}
+
+
+char *to_lower_string(const char *str)
+{
+	char  *lower_str = malloc(sizeof(str));
+
+	for(int i = 0; str[i] != '\0'; i++)
+		lower_str[i] = tolower(str[i]);
+
+	return lower_str;
 }
