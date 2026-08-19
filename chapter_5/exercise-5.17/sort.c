@@ -9,29 +9,34 @@
 
 char *lineptr[MAXLINES];
 
-int getLine(char dst[], int maxlen);
-int readlines(char *lineptr[], int nlines);
+int  getLine(char dst[], int maxlen);
+int  readlines(char *lineptr[], int nlines);
 void writelines(char *lineptr[], int nlines);
+void validate_number(char *num_ptr);
+void substr(const char *str, char dst[], int start, int stop);
 void print_help();
 
-void qSort(void *lineptr[], int left, int right, int (*cmp)(void *, void *));
-int numcmp(const char *, const char *);
-int rev_strcmp(const char *, const char *);
-int dircmp(const char *s1, const char *s2);
-void swap(void *v[], int i, int j);
-char *to_lower_string(const char *str);
-int strcmp_dispatch(const char *, const char *);
+void  qSort(void *lineptr[], int left, int right, int (*cmp)(void *, void *));
+int   numcmp(const char *, const char *);
+int   rev_strcmp(const char *, const char *);
+int   dircmp(const char *s1, const char *s2);
+void  swap(void *v[], int i, int j);
+void  to_lower_string(char str[]);
+int   strcmp_dispatch(const char *, const char *);
+
 //flags
 int numeric = 0;
 int reverse = 0;
 int fold    = 0;
 int dir     = 0;
+int pos1    = 1;
+int pos2    = 0;
 
 int main(int argc, char *argv[])
 {
 	int nlines;
 	
-	if(argc > 3)
+	if(argc > 7)
 	{
 		printf("Error: Too many argumnets\n");
 		print_help();
@@ -42,7 +47,7 @@ int main(int argc, char *argv[])
 
 	for(int i = 1; i < argc; i++)
 	{
-		if(argv[i][0] == '-')
+		if(argv[i][0] == '-' && !isdigit(argv[i][1]))
 		{
 			for(int j = 1; argv[i][j] != '\0'; j++)
 			{
@@ -68,7 +73,18 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-
+		else if(argv[i][0] == '-')
+		{
+			char* num_ptr = &argv[i][1];
+			validate_number(num_ptr);
+			pos1 = atoi(num_ptr);
+		}
+		else if(argv[i][0] == '+')
+		{
+			char* num_ptr = &argv[i][1];
+			validate_number(num_ptr);
+			pos2 = atoi(num_ptr);
+		}
 		else
 		{
 			printf("Error: Invalid argument\n");
@@ -78,8 +94,6 @@ int main(int argc, char *argv[])
 		}
 	}	
 	
-
-
 	nlines = readlines(lineptr, MAXLINES);
 	
 	if(nlines == 0)
@@ -101,6 +115,55 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 }
+
+void validate_number(char *str) 
+{
+	for(int i = 0; str[i] != '\0'; i++)
+	{
+		if(!isdigit(str[i]))
+		{
+			printf("Error: Unexpected argument %s\n", str); 
+			exit(1);
+		}
+	}
+}
+
+
+void substr(const char *str, char dst[], int start, int stop)
+{
+	if(str == NULL || str[0] == '\0')
+	{
+		dst[0] == '\0';
+		return;
+	}
+
+
+	int str_len = strlen(str);
+
+	if(stop == 0)
+		stop = str_len;
+
+
+	int start_idx = start - 1;
+	int stop_idx  = stop  - 1;
+
+	if(start_idx < 0 || start_idx >= str_len || stop_idx < start_idx || stop_idx >= str_len)
+	{
+		printf("Error: string too short.");
+		exit(1);
+	}
+
+
+	int i;
+	int dst_idx = 0;
+	for(i = start_idx; i <= stop_idx; i++)
+		dst[dst_idx++] = str[i];
+	
+	dst[dst_idx] = '\0';
+
+}
+
+
 
 void qSort(void *v[], int left, int right, int (*cmp)(void *, void *))
 {
@@ -133,27 +196,27 @@ void swap(void *v[], int i, int j)
 
 int strcmp_dispatch(const char *s1, const char *s2)
 {
+	char str1[MAXLEN];
+	char str2[MAXLEN];
+	substr(s1, str1, pos1, pos2);
+	substr(s2, str2, pos1, pos2);
+
 	if(fold == 1)
 	{
-		char *s1_lower = to_lower_string(s1);
-	      	char *s2_lower = to_lower_string(s2);
-		if(reverse == 1)
-		{
-			if(dir == 1)
-				return dircmp(s2_lower, s1_lower);
-			return strcmp(s2_lower, s1_lower);
-		}
-		if(dir == 1)
-			return dircmp(s1_lower, s2_lower);
-		return strcmp(s1_lower, s2_lower);	
+		to_lower_string(str1);
+	      	to_lower_string(str2);
 	}
+	
+	int result;
+	if(dir == 1)
+		result = dircmp(str1, str2);
+	else
+		result = strcmp(str1, str2);
 
 	if(reverse == 1)
-		return strcmp(s2, s1);
+		return -result;
 
-	if(dir == 1)
-		return dircmp(s2, s1);
-	return strcmp(s1, s2);
+	return result;
 }
 
 int dircmp(const char *s1, const char *s2)
@@ -172,7 +235,7 @@ int dircmp(const char *s1, const char *s2)
 		while(s1[i] != '\0' && !isalnum(s1[i]) && s1[i] != ' ')
 		      i++;
 
-		while(s1[i] != '\0' && !isalnum(s2[j]) && s2[j] != ' ')
+		while(s2[j] != '\0' && !isalnum(s2[j]) && s2[j] != ' ')
 		      j++;
 	
 
@@ -197,8 +260,11 @@ int numcmp(const char *s1, const char *s2)
 
 	int result;
 
-	v1 = atof(s1);
-	v2 = atof(s2);
+	char str[MAXLEN];
+	substr(s1, str, pos1, pos2);
+	v1 = atof(str);
+	substr(s2, str, pos1, pos2);
+	v2 = atof(str);
 
 	if(v1 < v2)
 		result = -1;
@@ -270,12 +336,9 @@ void print_help()
 }
 
 
-char *to_lower_string(const char *str)
+void to_lower_string(char str[])
 {
-	char  *lower_str = malloc(sizeof(str));
-
 	for(int i = 0; str[i] != '\0'; i++)
-		lower_str[i] = tolower(str[i]);
+		str[i] = tolower(str[i]);
 
-	return lower_str;
 }
