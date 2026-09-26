@@ -3,22 +3,26 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define MAX_LINE_OCC 1000
+
 struct tnode {
 	char *word;
-	int match;
+	int lines[MAX_LINE_OCC];
+	int word_count;
 	struct tnode *left;
 	struct tnode *right;
 };
 
 #define MAXWORD 100
-#define YES 1
-#define NO 0
+#define MIN_WORD_LEN 3
+
+int line = 1;
 
 #define BUFSIZE 10
 int bufp = 0;
 char buf[BUFSIZE];
 
-struct tnode *addtreex(struct tnode *, char *, int, int *);
+struct tnode *addtreex(struct tnode *, char *,  int);
 void treexprint(struct tnode *);
 int getword(char *, int);
 
@@ -26,24 +30,25 @@ int main(int argc, char *argv[])
 {
 	struct tnode *root;
 	char word[MAXWORD];
-	int found = NO;
-	int num;
 
-	num = (--argc && (*++argv[0] == '-')) ? atoi(argv[0]+1) : 6;
+	int res;
 	root = NULL;
-	while(getword(word, MAXWORD) != EOF) {
-		if(isalpha(word[0]) && strlen(word) >= num) 
-			root = addtreex(root, word, num, &found);
-		found = NO;
+	while((res = getword(word, MAXWORD)) != EOF) {
+		if(res == '\n')
+		{
+			line++;
+			continue;
+		}
+		if(isalpha(word[0]) && strlen(word) > MIN_WORD_LEN) 
+			root = addtreex(root, word, line);
 	}
 	treexprint(root);
 	return 0;
 }
 
 struct tnode *talloc(void);
-int compare(char *, struct tnode *, int, int *);
 
-struct tnode *addtreex(struct tnode *p, char *w, int num, int *found) 
+struct tnode *addtreex(struct tnode *p, char *w,  int line) 
 {
 	int cond;
 
@@ -51,36 +56,33 @@ struct tnode *addtreex(struct tnode *p, char *w, int num, int *found)
 	{
 		p = (struct tnode *) malloc(sizeof(struct tnode));
 		p->word=strdup(w);
-		p->match=*found;
+		p->word_count = 0;
+		p->lines[p->word_count++] = line;
 		p->left=p->right=NULL;
-	} else if((cond=compare(w, p, num, found)) < 0)
-		p->left=addtreex(p->left, w, num, found);
+	} 
+	else if((cond = strcmp(w, p->word)) < 0)
+		p->left=addtreex(p->left, w, line);
 	else if(cond > 0)
-		p->right=addtreex(p->right, w, num, found);
-	return p;
-}
-
-int compare(char *s, struct tnode *p, int num, int *found)
-{
-	int i;
-	char *t=p->word;
-	
-	for(i = 0; *s==*t; i++, s++, t++)
-		if(*s='\0')
-			return 0;
-	if(i >= num) {
-		*found = YES;
-		p->match = YES;
+		p->right=addtreex(p->right, w, line);
+	else if(cond == 0)
+	{
+		p->lines[p->word_count++] = line;
 	}
-	return *s-*t;
+	return p;
 }
 
 void treexprint(struct tnode *p)
 {
 	if(p != NULL) {
 		treexprint(p->left);
-		if(p->match)
-			printf("%s\n", p->word);
+		if(p->word_count >= 1)
+		{
+			printf("%s:\n", p->word);
+			printf("Occured on lines:");
+			for(int i = 0; i < p->word_count; i++)
+				printf("%d,", p->lines[i]);
+			printf("\n");
+		}
 		treexprint(p->right);
 	}
 }
@@ -105,7 +107,7 @@ int getword(char *dst, int lim)
 	int c;
 	char *w = dst;
 
-	while(isspace(c = getch()))
+	while((c = getch()) == ' ' || c == '\t')
 		;
 
 	if(c != EOF)
@@ -114,6 +116,9 @@ int getword(char *dst, int lim)
 	if(c == '#')
 	{
 		while((c = getch()) != '\n' && c != EOF);
+		if(c == '\n')
+			return c;
+
 		return getword(dst, lim);
 	}
 
@@ -123,6 +128,9 @@ int getword(char *dst, int lim)
 		if(next == '/')
 		{
 			while((c = getch()) != '\n' && c != EOF);
+			if(c == '\n')
+				return c;
+
 			return getword(dst, lim);
 		}
 		else if(next == '*')
@@ -134,6 +142,8 @@ int getword(char *dst, int lim)
 					if((next = getch()) == '/') break;
 					else ungetch(next);
 				};
+				if(c == '\n')
+					line++;
 			}
 			return getword(dst, lim);
 
@@ -175,6 +185,4 @@ int getword(char *dst, int lim)
 	}
 	 *w = '\0';
 	 return dst[0];
-
-
 }
