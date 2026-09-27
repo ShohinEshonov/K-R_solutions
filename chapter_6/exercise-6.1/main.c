@@ -100,12 +100,12 @@ int getword(char *dst, int lim)
 
 int getch(void)
 {
-	return (bufp > 0) ? buf[bufp--] : getchar();
+	return (bufp > 0) ? buf[--bufp] : getchar();
 }
 
 void ungetch(int c)
 {
-	if(bufp > BUFSIZE)
+	if(bufp >= BUFSIZE)
 	{
 		printf("Ungetch: Buffer overflow\n");
 		return;

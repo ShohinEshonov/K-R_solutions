@@ -3,85 +3,105 @@
 #include <string.h>
 #include <stdlib.h>
 
-struct tnode {
+struct word {
 	char *word;
-	int match;
+	int count;
+};
+
+struct tnode {
+	struct word word;
 	struct tnode *left;
 	struct tnode *right;
 };
 
-#define MAXWORD 100
-#define YES 1
-#define NO 0
-
+#define MAXWORD 1000
+#define MAXWORDS 10000
 #define BUFSIZE 10
 int bufp = 0;
 char buf[BUFSIZE];
 
-struct tnode *addtreex(struct tnode *, char *, int, int *);
-void treexprint(struct tnode *);
+struct tnode *addtreex(struct tnode *, char *);
 int getword(char *, int);
+void tree_to_array(struct tnode *root, struct word words[], int *n);
+int comparator(const void* a, const void* b);
+void print_words(struct word words[], int);
 
 int main(int argc, char *argv[]) 
 {
 	struct tnode *root;
 	char word[MAXWORD];
-	int found = NO;
-	int num;
 
-	num = (--argc && (*++argv[0] == '-')) ? atoi(argv[0]+1) : 6;
+	int res;
 	root = NULL;
-	while(getword(word, MAXWORD) != EOF) {
-		if(isalpha(word[0]) && strlen(word) >= num) 
-			root = addtreex(root, word, num, &found);
-		found = NO;
+	while((res = getword(word, MAXWORD)) != EOF) {
+		if(isalpha(word[0])) 
+			root = addtreex(root, word);
 	}
-	treexprint(root);
+	int n = 0;
+	struct word words[MAXWORDS];
+
+	tree_to_array(root, words, &n);
+
+
+	qsort(words, n, sizeof(words[0]), comparator);
+
+	print_words(words, n);
+
 	return 0;
 }
 
-int compare(char *, struct tnode *, int, int *);
-
-struct tnode *addtreex(struct tnode *p, char *w, int num, int *found) 
+struct tnode *addtreex(struct tnode *p, char *w) 
 {
 	int cond;
 
 	if(p == NULL)
 	{
 		p = (struct tnode *) malloc(sizeof(struct tnode));
-		p->word=strdup(w);
-		p->match=*found;
+		p->word.word = strdup(w);
+		p->word.count = 1;
 		p->left=p->right=NULL;
-	} else if((cond=compare(w, p, num, found)) < 0)
-		p->left=addtreex(p->left, w, num, found);
+	} 
+	else if((cond = strcmp(w, p->word.word)) < 0)
+		p->left=addtreex(p->left, w);
 	else if(cond > 0)
-		p->right=addtreex(p->right, w, num, found);
+		p->right=addtreex(p->right, w);
+	else if(cond == 0)
+		p->word.count++;
+	
 	return p;
 }
 
-int compare(char *s, struct tnode *p, int num, int *found)
+void tree_to_array(struct tnode *root, struct word words[], int *n) 
 {
-	int i;
-	char *t=p->word;
+	if(root == NULL)
+		return;
+
 	
-	for(i = 0; *s==*t; i++, s++, t++)
-		if(*s='\0')
-			return 0;
-	if(i >= num) {
-		*found = YES;
-		p->match = YES;
-	}
-	return *s-*t;
+	tree_to_array(root->left, words, n);
+
+
+	words[*n].word = root->word.word;
+	words[*n].count = root->word.count;
+	(*n)++;
+
+	tree_to_array(root->right, words, n);
 }
 
-void treexprint(struct tnode *p)
+
+
+int comparator(const void* a, const void* b)
 {
-	if(p != NULL) {
-		treexprint(p->left);
-		if(p->match)
-			printf("%s\n", p->word);
-		treexprint(p->right);
-	}
+	const struct word *w1 = a;
+	const struct word *w2 = b;
+
+	return w2->count - w1->count;
+}
+
+void print_words(struct word words[], int n)
+{
+	for(int i = 0; i < n; i++)
+		printf("%s : Finded %d times.\n", words[i].word, words[i].count);
+
 }
 
 int getch(void)
@@ -172,8 +192,8 @@ int getword(char *dst, int lim)
 			break;
 		}
 	}
-	 *w = '\0';
-	 return dst[0];
+	*w = '\0';
+	return dst[0];
 
 
 }
