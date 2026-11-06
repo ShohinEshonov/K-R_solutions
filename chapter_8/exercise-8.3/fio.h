@@ -27,8 +27,8 @@ enum  _flags {
 #define stdout (&_iob[1])
 #define stderr (&_iob[2])
 
-#define feof(p) ((p)->flag.eof  != 0)
-#define ferror(p) ((p)->flag.err  != 0)
+#define feof(p)   (((p)->flag & _EOF) != 0)
+#define ferror(p) (((p)->flag & _ERR) != 0)
 #define fileno(p) ((p)->fd)
 
 #endif
