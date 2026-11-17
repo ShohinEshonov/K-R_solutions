@@ -91,6 +91,8 @@ void _free(void *ap)
 	for(p = freep; !(bp>p && bp < p->s.ptr); p = p->s.ptr)
 		if(p >= p->s.ptr && (bp > p || bp < p->s.ptr))
 			break;
+	
+	Header *block = bp;
 
 	if(bp + bp->s.size == p->s.ptr) {
 		bp->s.size += p->s.ptr->s.size;
@@ -102,7 +104,7 @@ void _free(void *ap)
 		p->s.ptr  =  bp->s.ptr; 
 	} else 
 		p->s.ptr = bp;
-	p->s.is_free = 1;
+	block->s.is_free = 1;
 	freep = p;
 }
 
